@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download File</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+        h1 { color: #0074cc; margin-bottom: 20px; }
+        p { margin-bottom: 20px; }
+        button {
+            background: #0074cc;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background: #005fa3; }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="downloadContainer">
+        <h1>Download Your File</h1>
+        <p id="fileInfo">Mengambil informasi file...</p>
+        <button id="downloadBtn" style="display: none;">Download Now</button>
+    </div>
+
+    <script>
+        const fileInfo = document.getElementById('fileInfo');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // Ambil nama file dari parameter URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileName = urlParams.get('file');
+
+        if (fileName) {
+            const fileURL = localStorage.getItem(fileName);
+
+            if (fileURL) {
+                fileInfo.innerHTML = `File: <strong>${fileName}</strong>`;
+                downloadBtn.style.display = 'block';
+
+                // Tombol untuk download file
+                downloadBtn.addEventListener('click', () => {
+                    const a = document.createElement('a');
+                    a.href = fileURL;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                });
+            } else {
+                fileInfo.innerHTML = "File tidak ditemukan!";
+            }
+        } else {
+            fileInfo.innerHTML = "Tidak ada file yang dipilih!";
+        }
+    </script>
+
+</body>
+</html>

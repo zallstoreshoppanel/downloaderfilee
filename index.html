@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Uploader</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 400px;
+        }
+        h1 { color: #0074cc; margin-bottom: 20px; }
+        input[type="file"] {
+            margin: 20px 0;
+            padding: 10px;
+            border: 2px dashed #0074cc;
+            background: #f9f9f9;
+            width: 100%;
+            border-radius: 5px;
+        }
+        button {
+            background: #0074cc;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover { background: #005fa3; }
+        .progress-bar {
+            display: none;
+            width: 100%;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .progress-bar-fill {
+            height: 20px;
+            width: 0%;
+            background-color: #0074cc;
+            border-radius: 5px;
+            text-align: center;
+            color: white;
+            line-height: 20px;
+            font-weight: bold;
+        }
+        .link-section {
+            margin-top: 20px;
+        }
+        .link-section input {
+            width: 80%;
+            padding: 8px;
+            border: 1px solid #0074cc;
+            border-radius: 5px;
+            background: #f0f8ff;
+        }
+        .link-section button {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="uploadContainer">
+        <h1>Upload Your File</h1>
+        <input type="file" id="fileInput">
+        <button id="uploadBtn">Upload File</button>
+
+        <div class="progress-bar" id="progressBar">
+            <div class="progress-bar-fill" id="progressBarFill">0%</div>
+        </div>
+
+        <!-- Link setelah upload -->
+        <div class="link-section" id="linkSection" style="display: none;">
+            <p>File berhasil diupload! Salin link di bawah untuk mendownload:</p>
+            <input type="text" id="downloadLink" readonly>
+            <button id="copyBtn">Copy Link</button>
+        </div>
+    </div>
+
+    <!-- Container untuk halaman download -->
+    <div class="container" id="downloadContainer" style="display: none;">
+        <h1>Download Your File</h1>
+        <p id="fileInfo">Mengambil informasi file...</p>
+        <button id="downloadBtn" style="display: none;">Download Now</button>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const progressBar = document.getElementById('progressBar');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const linkSection = document.getElementById('linkSection');
+        const downloadLink = document.getElementById('downloadLink');
+        const copyBtn = document.getElementById('copyBtn');
+
+        const uploadContainer = document.getElementById('uploadContainer');
+        const downloadContainer = document.getElementById('downloadContainer');
+        const fileInfo = document.getElementById('fileInfo');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        const MAX_FILE_SIZE_MB = 200; // Batas maksimal file 200MB
+
+        // Cek apakah ini halaman download berdasarkan URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const fileId = urlParams.get('id');
+
+        if (fileId) {
+            // Tampilkan halaman download jika ada parameter file di URL
+            uploadContainer.style.display = 'none';
+            downloadContainer.style.display = 'block';
+
+            const fileData = JSON.parse(localStorage.getItem(fileId));
+
+            if (fileData) {
+                fileInfo.innerHTML = `File: <strong>${fileData.name}</strong>`;
+                downloadBtn.style.display = 'block';
+
+                downloadBtn.addEventListener('click', () => {
+                    // Konversi Base64 kembali menjadi Blob untuk diunduh
+                    const blob = base64ToBlob(fileData.data);
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = fileData.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                });
+            } else {
+                fileInfo.innerHTML = "File tidak ditemukan!";
+            }
+        }
+
+        // Fungsi upload file dengan progres akurat
+        uploadBtn.addEventListener('click', () => {
+            const file = fileInput.files[0];
+
+            if (file) {
+                const fileSizeMB = file.size / (1024 * 1024);
+
+                if (fileSizeMB > MAX_FILE_SIZE_MB) {
+                    alert("Ukuran file melebihi batas 200MB!");
+                    return;
+                }
+
+                progressBar.style.display = 'block';
+                progressBarFill.style.width = '0%';
+                progressBarFill.innerText = '0%';
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const base64Data = event.target.result.split(',')[1]; // Ambil bagian base64 saja
+
+                    // Simulasi upload dengan progres akurat
+                    simulateUpload(file, base64Data);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                alert("Silakan pilih file terlebih dahulu!");
+            }
+        });
+
+        // Simulasi upload dengan progres akurat
+        function simulateUpload(file, base64Data) {
+            const totalSize = base64Data.length;
+            let uploaded = 0;
+            const chunkSize = 1024 * 500; // 500KB per proses
+
+            const uploadInterval = setInterval(() => {
+                uploaded += chunkSize;
+
+                const percentComplete = Math.min((uploaded / totalSize) * 100, 100);
+                progressBarFill.style.width = percentComplete.toFixed(2) + '%';
+                progressBarFill.innerText = percentComplete.toFixed(2) + '%';
+
+                if (uploaded >= totalSize) {
+                    clearInterval(uploadInterval);
+
+                    // Simpan file dengan ID unik
+                    const uniqueId = Date.now() + Math.random().toString(36).substr(2, 9);
+                    const fileInfo = { name: file.name, data: base64Data };
+                    localStorage.setItem(uniqueId, JSON.stringify(fileInfo));
+
+                    // Buat link download
+                    const link = `${window.location.origin}${window.location.pathname}?id=${uniqueId}`;
+                    downloadLink.value = link;
+
+                    linkSection.style.display = 'block';
+                    progressBar.style.display = 'none';
+                }
+            }, 100); // Kecepatan proses berdasarkan ukuran file
+        }
+
+        // Fitur copy link
+        copyBtn.addEventListener('click', () => {
+            downloadLink.select();
+            document.execCommand('copy');
+            alert("Link berhasil disalin!");
+        });
+
+        // Fungsi konversi Base64 ke Blob
+        function base64ToBlob(base64) {
+            const byteCharacters = atob(base64);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            return new Blob([byteArray]);
+        }
+    </script>
+
+</body>
+</html>
